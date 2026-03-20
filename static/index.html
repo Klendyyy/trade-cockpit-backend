@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Trade Cockpit</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-deep: #0a0b0f;
+  --bg-card: #12141a;
+  --bg-card-hover: #181b23;
+  --bg-surface: #1a1d26;
+  --bg-elevated: #22252f;
+  --border: rgba(255,255,255,0.06);
+  --border-active: rgba(255,255,255,0.12);
+  --text-primary: #e8e6e1;
+  --text-secondary: #8a8880;
+  --text-muted: #5a5850;
+  --accent: #a78bfa;
+  --accent-dim: rgba(167,139,250,0.12);
+  --accent-glow: rgba(167,139,250,0.25);
+  --green: #34d399;
+  --green-dim: rgba(52,211,153,0.12);
+  --green-glow: rgba(52,211,153,0.3);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.12);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251,191,36,0.12);
+  --font: 'Manrope', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: var(--font);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+  position: relative;
+}
+
+/* ═══ HEADER ═══ */
+.header {
+  padding: 16px 20px 12px;
+  position: relative;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 20px; right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-active), transparent);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo-icon svg { width: 20px; height: 20px; }
+.logo-text {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+.logo-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.73rem;
+  color: var(--green);
+  font-weight: 600;
+}
+.pulse-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--green-glow); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px transparent; }
+}
+
+/* ═══ TABS ═══ */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-deep);
+}
+.tab-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.tab-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.tab-btn:not(.active):hover {
+  color: var(--text-secondary);
+}
+
+/* ═══ VIEWS ═══ */
+.view { display: none; padding: 0 20px; }
+.view.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══ CARDS ═══ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border-active); }
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.badge-live { background: var(--green-dim); color: var(--green); }
+.badge-wait { background: var(--bg-elevated); color: var(--text-muted); }
+.badge-high { background: var(--red-dim); color: var(--red); }
+.badge-mid { background: var(--amber-dim); color: var(--amber); }
+
+/* ═══ PAIR ROWS ═══ */
+.pair-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pair-row:last-child { border-bottom: none; }
+.pair-name {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: 80px;
+  flex-shrink: 0;
+}
+.vol-track {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.vol-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.vol-high { background: linear-gradient(90deg, var(--red), #ef4444); }
+.vol-mid { background: linear-gradient(90deg, var(--amber), #f59e0b); }
+.vol-low { background: linear-gradient(90deg, var(--green), #10b981); }
+.vol-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  width: 32px;
+  text-align: right;
+  font-family: var(--mono);
+}
+.payout {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  width: 38px;
+  text-align: right;
+}
+.payout-good { color: var(--green); }
+.payout-ok { color: var(--amber); }
+
+/* ═══ VERDICT ═══ */
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+.verdict-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.verdict-go { background: var(--green-dim); color: var(--green); }
+.verdict-wait { background: var(--amber-dim); color: var(--amber); }
+.verdict-stop { background: var(--red-dim); color: var(--red); }
+
+/* ═══ NEWS ═══ */
+.news-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.news-item:last-child { border-bottom: none; }
+.news-time {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  width: 52px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.news-body { flex: 1; }
+.news-title { font-size: 0.82rem; font-weight: 500; line-height: 1.3; }
+.news-countdown { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+.impact-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.impact-high { background: var(--red); box-shadow: 0 0 6px var(--red-dim); }
+.impact-mid { background: var(--amber); }
+
+/* ═══ MM SECTION ═══ */
+.deposit-display {
+  text-align: center;
+  padding: 20px 0 16px;
+}
+.deposit-label {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.deposit-value {
+  font-family: var(--mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.deposit-edit {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 14px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.metric-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+.metric-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.metric-value {
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.progress-section { margin-bottom: 12px; }
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.progress-track {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.martin-table { width: 100%; margin-top: 8px; }
+.martin-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.martin-row:last-child { border-bottom: none; }
+.martin-step { color: var(--text-secondary); font-weight: 500; }
+.martin-amount { font-family: var(--mono); font-weight: 700; }
+.martin-danger { color: var(--red); }
+.martin-warn { color: var(--amber); }
+
+/* ═══ CHECKLIST ═══ */
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.check-item:last-child { border-bottom: none; }
+.check-circle {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.check-circle svg { opacity: 0; transition: opacity 0.2s; width: 12px; height: 12px; }
+.check-item.done .check-circle {
+  background: var(--green);
+  border-color: var(--green);
+}
+.check-item.done .check-circle svg { opacity: 1; }
+.check-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+.check-item.done .check-text { color: var(--text-primary); }
+
+.streak-section { margin-top: 16px; }
+.streak-label {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.streak-dots {
+  display: flex;
+  gap: 6px;
+}
+.streak-dot {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.streak-on {
+  background: var(--green-dim);
+  color: var(--green);
+}
+.streak-off {
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+}
+.streak-today {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.streak-msg {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--green);
+  margin-top: 10px;
+}
+
+/* ═══ JOURNAL ═══ */
+.journal-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.j-stat {
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+.j-stat-value {
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.j-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 2px;
+}
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.heat-day-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+.heat-cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.h-empty { background: var(--bg-elevated); color: transparent; }
+.h-profit-1 { background: rgba(52,211,153,0.15); color: var(--green); }
+.h-profit-2 { background: rgba(52,211,153,0.3); color: var(--green); }
+.h-profit-3 { background: rgba(52,211,153,0.5); color: #fff; }
+.h-loss { background: var(--red-dim); color: var(--red); }
+
+.hours-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.hours-row:last-child { border-bottom: none; }
+.hours-label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.hours-wr {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.wr-good { color: var(--green); }
+.wr-bad { color: var(--red); }
+.wr-ok { color: var(--amber); }
+
+.section-label {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 16px 0 8px;
+}
+
+/* ═══ DEPOSIT MODAL ═══ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 999;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.show { display: flex; }
+.modal-sheet {
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 20px 40px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-title {
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.modal-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+.modal-input:focus { border-color: var(--accent); }
+.modal-presets {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 20px;
+  justify-content: center;
+}
+.preset-btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border-active);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.preset-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.modal-save {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ═══ LOG TRADE BUTTON ═══ */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 28px;
+  border-radius: 50px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 24px var(--accent-glow);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab:active { transform: translateX(-50%) scale(0.96); }
+
+/* ═══ LOG TRADE MODAL ═══ */
+.trade-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 999;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.trade-modal-overlay.show { display: flex; }
+.trade-sheet {
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 20px 40px;
+  animation: slideUp 0.3s ease;
+}
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.asset-btn {
+  padding: 10px 0;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.asset-btn.selected {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.direction-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.dir-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dir-call { color: var(--green); }
+.dir-call.selected { background: var(--green-dim); border-color: var(--green); }
+.dir-put { color: var(--red); }
+.dir-put.selected { background: var(--red-dim); border-color: var(--red); }
+.result-row {
+  display: flex;
+  gap: 8px;
+}
+.res-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.res-win { background: var(--green); color: #fff; }
+.res-loss { background: var(--red); color: #fff; }
+
+/* ═══ HELPER ═══ */
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ═══ TOAST ═══ */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%; transform: translateX(-50%);
+  padding: 10px 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-active);
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* ═══ MM strategy selector ═══ */
+.strategy-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+.strat-btn {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.strat-btn.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+            <path d="M2 12L6 3l4 14 4-8 4 6 4-3"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text">Trade Cockpit</div>
+          <div class="logo-sub">pre-flight check</div>
+        </div>
+      </div>
+      <div class="header-status">
+        <span class="pulse-dot"></span>
+        London
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="sessions">Сессии</button>
+    <button class="tab-btn" data-tab="mm">MM</button>
+    <button class="tab-btn" data-tab="checklist">Чеклист</button>
+    <button class="tab-btn" data-tab="journal">Журнал</button>
+  </div>
+
+  <!-- ═══ SESSIONS VIEW ═══ -->
+  <div class="view active" id="view-sessions">
+    <div class="card" id="london-card">
+      <div class="card-header">
+        <span class="card-title">London</span>
+        <span class="badge badge-live"><span class="pulse-dot" style="width:5px;height:5px"></span>Активна</span>
+      </div>
+      <div class="pair-row">
+        <span class="pair-name">EUR/USD</span>
+        <div class="vol-track"><div class="vol-fill vol-high" style="width:82%"></div></div>
+        <span class="vol-label">82%</span>
+        <span class="payout payout-good">92%</span>
+      </div>
+      <div class="pair-row">
+        <span class="pair-name">GBP/USD</span>
+        <div class="vol-track"><div class="vol-fill vol-high" style="width:74%"></div></div>
+        <span class="vol-label">74%</span>
+        <span class="payout payout-good">90%</span>
+      </div>
+      <div class="pair-row">
+        <span class="pair-name">EUR/GBP</span>
+        <div class="vol-track"><div class="vol-fill vol-mid" style="width:56%"></div></div>
+        <span class="vol-label">56%</span>
+        <span class="payout payout-ok">87%</span>
+      </div>
+      <div class="pair-row">
+        <span class="pair-name">USD/CHF</span>
+        <div class="vol-track"><div class="vol-fill vol-mid" style="width:48%"></div></div>
+        <span class="vol-label">48%</span>
+        <span class="payout payout-ok">86%</span>
+      </div>
+      <div class="verdict verdict-go">
+        <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Лучшая сессия для торговли. Топ: EUR/USD, GBP/USD
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">New York</span>
+        <span class="badge badge-wait">Через 2ч</span>
+      </div>
+      <div class="pair-row">
+        <span class="pair-name">USD/CAD</span>
+        <div class="vol-track"><div class="vol-fill vol-mid" style="width:60%"></div></div>
+        <span class="vol-label">60%</span>
+        <span class="payout payout-good">91%</span>
+      </div>
+      <div class="pair-row">
+        <span class="pair-name">USD/JPY</span>
+        <div class="vol-track"><div class="vol-fill vol-mid" style="width:52%"></div></div>
+        <span class="vol-label">52%</span>
+        <span class="payout payout-ok">88%</span>
+      </div>
+      <div class="verdict verdict-wait">
+        <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Откроется в 15:30 МСК. Ожидается высокая волатильность.
+      </div>
+    </div>
+
+    <div class="section-label">Ближайшие новости</div>
+    <div class="card" style="padding: 6px 16px;">
+      <div class="news-item">
+        <span class="news-time" id="news1-time">15:30</span>
+        <div class="news-body">
+          <div class="news-title">Core CPI (США)</div>
+          <div class="news-countdown" id="news1-cd">через 47 мин</div>
+        </div>
+        <div class="impact-dot impact-high"></div>
+      </div>
+      <div class="news-item">
+        <span class="news-time">16:00</span>
+        <div class="news-body">
+          <div class="news-title">Решение ЕЦБ по ставке</div>
+          <div class="news-countdown">через 1ч 17мин</div>
+        </div>
+        <div class="impact-dot impact-high"></div>
+      </div>
+      <div class="news-item">
+        <span class="news-time">17:30</span>
+        <div class="news-body">
+          <div class="news-title">Запасы нефти (EIA)</div>
+          <div class="news-countdown">через 2ч 47мин</div>
+        </div>
+        <div class="impact-dot impact-mid"></div>
+      </div>
+    </div>
+
+    <div class="verdict verdict-stop" style="margin: 0 0 12px;">
+      <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Не торгуй за 15 мин до и 15 мин после новостей!
+    </div>
+  </div>
+
+  <!-- ═══ MM VIEW ═══ -->
+  <div class="view" id="view-mm">
+    <div class="deposit-display">
+      <div class="deposit-label">Мой депозит</div>
+      <div class="deposit-value" id="depositDisplay">$500</div>
+      <button class="deposit-edit" onclick="openDepositModal()">Изменить</button>
+    </div>
+
+    <div class="strategy-tabs" id="stratTabs">
+      <button class="strat-btn active" data-strat="fixed">2% от депо</button>
+      <button class="strat-btn" data-strat="martin">Мартингейл</button>
+      <button class="strat-btn" data-strat="anti">Анти-Мартин</button>
+    </div>
+
+    <div class="metric-grid" id="mmMetrics">
+      <div class="metric-card">
+        <div class="metric-label">Размер ставки</div>
+        <div class="metric-value" id="betSize">$10</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Лимит потерь/день</div>
+        <div class="metric-value" id="dailyLimit">$50</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Сделок до стопа</div>
+        <div class="metric-value" id="tradesLeft">5</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Сегодня P/L</div>
+        <div class="metric-value" id="todayPL" style="color:var(--green)">+$18</div>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-header">
+        <span>Лимит использован</span>
+        <span id="lossCount">2 / 5 потерь</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="lossBar" style="width:40%; background: var(--amber);"></div>
+      </div>
+    </div>
+
+    <div class="card" id="martinCard">
+      <div class="card-header">
+        <span class="card-title">Калькулятор Мартингейла</span>
+      </div>
+      <div class="martin-table" id="martinTable"></div>
+    </div>
+  </div>
+
+  <!-- ═══ CHECKLIST VIEW ═══ -->
+  <div class="view" id="view-checklist">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Чеклист перед торговлей</span>
+        <span class="badge badge-wait" id="checkProgress">0 / 6</span>
+      </div>
+      <div id="checklistItems">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="check-text">Определил тренд на старшем ТФ</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="check-text">Проверил экономический календарь</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="check-text">Нет тильта (менее 3 потерь подряд)</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="check-text">Размер ставки по ММ</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="check-text">Торгую в свою лучшую сессию</span>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span class="check-text">Выспался, спокойное состояние</span>
+        </div>
+      </div>
+      <div class="verdict verdict-wait" id="checkVerdict" style="margin-top: 12px;">
+        Заполни все пункты перед торговлей
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Стрик дисциплины</span>
+      </div>
+      <div class="streak-label">Дни, когда следовал всем правилам</div>
+      <div class="streak-dots" id="streakDots">
+        <div class="streak-dot streak-on">Пн</div>
+        <div class="streak-dot streak-on">Вт</div>
+        <div class="streak-dot streak-on">Ср</div>
+        <div class="streak-dot streak-on">Чт</div>
+        <div class="streak-dot streak-today">Пт</div>
+        <div class="streak-dot streak-off">Сб</div>
+        <div class="streak-dot streak-off">Вс</div>
+      </div>
+      <div class="streak-msg">4 дня подряд! Продолжай в том же духе.</div>
+    </div>
+  </div>
+
+  <!-- ═══ JOURNAL VIEW ═══ -->
+  <div class="view" id="view-journal">
+    <div class="journal-stats">
+      <div class="j-stat">
+        <div class="j-stat-value" style="color:var(--green)" id="jWinrate">68%</div>
+        <div class="j-stat-label">Винрейт</div>
+      </div>
+      <div class="j-stat">
+        <div class="j-stat-value" id="jTrades">22</div>
+        <div class="j-stat-label">Сделки</div>
+      </div>
+      <div class="j-stat">
+        <div class="j-stat-value" style="color:var(--green)" id="jPnl">+$86</div>
+        <div class="j-stat-label">P/L</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Хитмэп активности</span>
+      </div>
+      <div class="heatmap-grid">
+        <div class="heat-day-label">Пн</div>
+        <div class="heat-day-label">Вт</div>
+        <div class="heat-day-label">Ср</div>
+        <div class="heat-day-label">Чт</div>
+        <div class="heat-day-label">Пт</div>
+        <div class="heat-day-label">Сб</div>
+        <div class="heat-day-label">Вс</div>
+        <div class="heat-cell h-profit-2">+3</div>
+        <div class="heat-cell h-profit-3">+5</div>
+        <div class="heat-cell h-profit-1">+2</div>
+        <div class="heat-cell h-profit-3">+4</div>
+        <div class="heat-cell h-profit-2">+3</div>
+        <div class="heat-cell h-empty"></div>
+        <div class="heat-cell h-empty"></div>
+        <div class="heat-cell h-profit-1">+1</div>
+        <div class="heat-cell h-profit-2">+3</div>
+        <div class="heat-cell h-loss">-2</div>
+        <div class="heat-cell h-profit-3">+4</div>
+        <div class="heat-cell h-profit-1">+2</div>
+        <div class="heat-cell h-empty"></div>
+        <div class="heat-cell h-empty"></div>
+        <div class="heat-cell h-profit-2">+2</div>
+        <div class="heat-cell h-loss">-1</div>
+        <div class="heat-cell h-profit-3">+5</div>
+        <div class="heat-cell h-profit-2">+3</div>
+        <div class="heat-cell h-profit-1">+1</div>
+        <div class="heat-cell h-empty"></div>
+        <div class="heat-cell h-empty"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Лучшие часы</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">09:00–11:00 (Лондон)</span>
+        <span class="hours-wr wr-good">78%</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">14:00–16:00 (NY overlap)</span>
+        <span class="hours-wr wr-good">71%</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">19:00–21:00 (вечер)</span>
+        <span class="hours-wr wr-bad">42%</span>
+      </div>
+      <div class="verdict verdict-stop" style="margin-top: 8px;">
+        Не торгуй вечером — твой WR падает ниже 50%
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Лучшие активы</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">EUR/USD</span>
+        <span class="hours-wr wr-good">74%</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">GBP/USD</span>
+        <span class="hours-wr wr-good">69%</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">USD/JPY</span>
+        <span class="hours-wr wr-ok">55%</span>
+      </div>
+      <div class="hours-row">
+        <span class="hours-label">BTC/USD</span>
+        <span class="hours-wr wr-bad">38%</span>
+      </div>
+      <div class="verdict verdict-stop" style="margin-top: 8px;">
+        Избегай BTC/USD — у тебя минусовая статистика
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openTradeModal()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Записать сделку
+  </button>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="modal-overlay" id="depositModal">
+  <div class="modal-sheet">
+    <div class="modal-title">Укажи свой депозит</div>
+    <input class="modal-input" id="depositInput" type="number" placeholder="500" value="">
+    <div class="modal-presets">
+      <button class="preset-btn" onclick="setDeposit(100)">$100</button>
+      <button class="preset-btn" onclick="setDeposit(250)">$250</button>
+      <button class="preset-btn" onclick="setDeposit(500)">$500</button>
+      <button class="preset-btn" onclick="setDeposit(1000)">$1000</button>
+    </div>
+    <button class="modal-save" onclick="saveDeposit()">Сохранить</button>
+  </div>
+</div>
+
+<!-- TRADE LOG MODAL -->
+<div class="trade-modal-overlay" id="tradeModal">
+  <div class="trade-sheet">
+    <div class="modal-title">Записать сделку</div>
+    <div class="section-label" style="margin-top:0">Актив</div>
+    <div class="asset-grid" id="assetGrid">
+      <button class="asset-btn" data-asset="EUR/USD">EUR/USD</button>
+      <button class="asset-btn" data-asset="GBP/USD">GBP/USD</button>
+      <button class="asset-btn" data-asset="USD/JPY">USD/JPY</button>
+      <button class="asset-btn" data-asset="USD/CAD">USD/CAD</button>
+      <button class="asset-btn" data-asset="EUR/GBP">EUR/GBP</button>
+      <button class="asset-btn" data-asset="BTC/USD">BTC/USD</button>
+    </div>
+    <div class="section-label">Направление</div>
+    <div class="direction-row" id="dirRow">
+      <button class="dir-btn dir-call" data-dir="CALL">CALL &#8593;</button>
+      <button class="dir-btn dir-put" data-dir="PUT">PUT &#8595;</button>
+    </div>
+    <div class="section-label">Результат</div>
+    <div class="result-row">
+      <button class="res-btn res-win" onclick="logTrade('win')">WIN</button>
+      <button class="res-btn res-loss" onclick="logTrade('loss')">LOSS</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ STATE ═══
+let state = {
+  deposit: 500,
+  strategy: 'fixed',
+  riskPercent: 2,
+  maxDailyLossPercent: 10,
+  payout: 0.9,
+  trades: [],
+  todayLosses: 2,
+  todayWins: 4,
+  selectedAsset: null,
+  selectedDir: null
+};
+
+// ═══ TABS ═══
+document.getElementById('tabBar').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('view-' + btn.dataset.tab).classList.add('active');
+});
+
+// ═══ DEPOSIT MODAL ═══
+function openDepositModal() {
+  document.getElementById('depositModal').classList.add('show');
+  document.getElementById('depositInput').value = state.deposit;
+  document.getElementById('depositInput').focus();
+}
+function setDeposit(v) { document.getElementById('depositInput').value = v; }
+function saveDeposit() {
+  const v = parseInt(document.getElementById('depositInput').value);
+  if (v > 0) {
+    state.deposit = v;
+    updateMM();
+    document.getElementById('depositModal').classList.remove('show');
+    showToast('Депозит обновлён: $' + v);
+  }
+}
+document.getElementById('depositModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+
+// ═══ MM LOGIC ═══
+function updateMM() {
+  const d = state.deposit;
+  const bet = Math.round(d * state.riskPercent / 100);
+  const dailyLoss = Math.round(d * state.maxDailyLossPercent / 100);
+  const maxLossTrades = Math.floor(dailyLoss / bet);
+  const left = Math.max(0, maxLossTrades - state.todayLosses);
+  const todayPL = (state.todayWins * Math.round(bet * state.payout)) - (state.todayLosses * bet);
+
+  document.getElementById('depositDisplay').textContent = '$' + d.toLocaleString();
+  document.getElementById('betSize').textContent = '$' + bet;
+  document.getElementById('dailyLimit').textContent = '$' + dailyLoss;
+  document.getElementById('tradesLeft').textContent = left;
+
+  const plEl = document.getElementById('todayPL');
+  plEl.textContent = (todayPL >= 0 ? '+' : '') + '$' + todayPL;
+  plEl.style.color = todayPL >= 0 ? 'var(--green)' : 'var(--red)';
+
+  document.getElementById('lossCount').textContent = state.todayLosses + ' / ' + maxLossTrades + ' потерь';
+  const pct = Math.min(100, (state.todayLosses / maxLossTrades) * 100);
+  const bar = document.getElementById('lossBar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--amber)' : 'var(--green)';
+
+  buildMartinTable(bet, d);
+}
+
+function buildMartinTable(baseBet, deposit) {
+  const table = document.getElementById('martinTable');
+  let html = '';
+  let bet = baseBet;
+  const payout = state.payout;
+  for (let i = 1; i <= 7; i++) {
+    const exceeds = bet > deposit;
+    const warn = bet > deposit * 0.5;
+    let cls = '';
+    if (exceeds) cls = 'martin-danger';
+    else if (warn) cls = 'martin-warn';
+    html += '<div class="martin-row">' +
+      '<span class="martin-step' + (exceeds ? ' martin-danger' : '') + '">Шаг ' + i + (exceeds ? ' — превышает депозит!' : '') + '</span>' +
+      '<span class="martin-amount ' + cls + '">$' + Math.round(bet) + '</span>' +
+      '</div>';
+    if (exceeds) break;
+    bet = Math.ceil(bet / payout * (1 + 1/payout));
+  }
+  table.innerHTML = html;
+}
+
+// ═══ STRATEGY TABS ═══
+document.getElementById('stratTabs').addEventListener('click', e => {
+  const btn = e.target.closest('.strat-btn');
+  if (!btn) return;
+  document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.strategy = btn.dataset.strat;
+  if (btn.dataset.strat === 'fixed') { state.riskPercent = 2; }
+  else if (btn.dataset.strat === 'martin') { state.riskPercent = 2; }
+  else { state.riskPercent = 1; }
+  updateMM();
+  document.getElementById('martinCard').style.display = btn.dataset.strat === 'martin' ? 'block' : 'none';
+});
+
+// ═══ CHECKLIST ═══
+function toggleCheck(el) {
+  el.classList.toggle('done');
+  const all = document.querySelectorAll('#checklistItems .check-item');
+  const done = document.querySelectorAll('#checklistItems .check-item.done');
+  document.getElementById('checkProgress').textContent = done.length + ' / ' + all.length;
+  const verdict = document.getElementById('checkVerdict');
+  if (done.length === all.length) {
+    verdict.className = 'verdict verdict-go';
+    verdict.innerHTML = '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Все пункты пройдены. Ты готов торговать!';
+  } else {
+    verdict.className = 'verdict verdict-wait';
+    verdict.innerHTML = 'Заполни все пункты перед торговлей (' + done.length + '/' + all.length + ')';
+  }
+}
+
+// ═══ TRADE LOG ═══
+function openTradeModal() {
+  document.getElementById('tradeModal').classList.add('show');
+  state.selectedAsset = null;
+  state.selectedDir = null;
+  document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('selected'));
+}
+document.getElementById('tradeModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+document.getElementById('assetGrid').addEventListener('click', e => {
+  const btn = e.target.closest('.asset-btn');
+  if (!btn) return;
+  document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.selectedAsset = btn.dataset.asset;
+});
+document.getElementById('dirRow').addEventListener('click', e => {
+  const btn = e.target.closest('.dir-btn');
+  if (!btn) return;
+  document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.selectedDir = btn.dataset.dir;
+});
+
+function logTrade(result) {
+  if (!state.selectedAsset || !state.selectedDir) {
+    showToast('Выбери актив и направление');
+    return;
+  }
+  if (result === 'loss') {
+    state.todayLosses++;
+  } else {
+    state.todayWins++;
+  }
+  updateMM();
+  updateJournal();
+  document.getElementById('tradeModal').classList.remove('show');
+  showToast(result === 'win' ? 'WIN записан! +$' + Math.round(state.deposit * state.riskPercent / 100 * state.payout) : 'LOSS записан. -$' + Math.round(state.deposit * state.riskPercent / 100));
+}
+
+function updateJournal() {
+  const total = state.todayWins + state.todayLosses;
+  const wr = total > 0 ? Math.round(state.todayWins / total * 100) : 0;
+  const bet = Math.round(state.deposit * state.riskPercent / 100);
+  const pnl = (state.todayWins * Math.round(bet * state.payout)) - (state.todayLosses * bet);
+  document.getElementById('jWinrate').textContent = wr + '%';
+  document.getElementById('jWinrate').style.color = wr >= 55 ? 'var(--green)' : wr >= 45 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('jTrades').textContent = total;
+  document.getElementById('jPnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl;
+  document.getElementById('jPnl').style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+// ═══ TOAST ═══
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ═══ TELEGRAM WEBAPP INTEGRATION ═══
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  // Подстраиваем цвета под тему Telegram пользователя
+  if (tg.colorScheme === 'light') {
+    document.documentElement.style.setProperty('--bg-deep', '#f5f5f5');
+    document.documentElement.style.setProperty('--bg-card', '#ffffff');
+    document.documentElement.style.setProperty('--bg-card-hover', '#f9f9f9');
+    document.documentElement.style.setProperty('--bg-surface', '#f0f0f0');
+    document.documentElement.style.setProperty('--bg-elevated', '#e8e8e8');
+    document.documentElement.style.setProperty('--border', 'rgba(0,0,0,0.08)');
+    document.documentElement.style.setProperty('--border-active', 'rgba(0,0,0,0.15)');
+    document.documentElement.style.setProperty('--text-primary', '#1a1a1a');
+    document.documentElement.style.setProperty('--text-secondary', '#666666');
+    document.documentElement.style.setProperty('--text-muted', '#999999');
+  }
+}
+
+// Отправка данных обратно в бот при логировании сделки
+function sendToBot(data) {
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify(data));
+  }
+}
+
+// ═══ LOCALSTORAGE PERSISTENCE ═══
+function saveState() {
+  try {
+    const toSave = {
+      deposit: state.deposit,
+      strategy: state.strategy,
+      riskPercent: state.riskPercent,
+      todayLosses: state.todayLosses,
+      todayWins: state.todayWins,
+      savedDate: new Date().toDateString()
+    };
+    localStorage.setItem('tradeCockpit', JSON.stringify(toSave));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('tradeCockpit'));
+    if (saved) {
+      state.deposit = saved.deposit || 500;
+      state.strategy = saved.strategy || 'fixed';
+      state.riskPercent = saved.riskPercent || 2;
+      // Сбрасываем дневную статистику если новый день
+      if (saved.savedDate === new Date().toDateString()) {
+        state.todayLosses = saved.todayLosses || 0;
+        state.todayWins = saved.todayWins || 0;
+      } else {
+        state.todayLosses = 0;
+        state.todayWins = 0;
+      }
+    }
+  } catch(e) {}
+}
+
+// Обновляем logTrade чтобы отправлять данные в бот и сохранять
+const _origLogTrade = logTrade;
+logTrade = function(result) {
+  if (!state.selectedAsset || !state.selectedDir) {
+    showToast('Выбери актив и направление');
+    return;
+  }
+  if (result === 'loss') {
+    state.todayLosses++;
+  } else {
+    state.todayWins++;
+  }
+  updateMM();
+  updateJournal();
+  saveState();
+  document.getElementById('tradeModal').classList.remove('show');
+  const bet = Math.round(state.deposit * state.riskPercent / 100);
+  showToast(result === 'win' ? 'WIN записан! +$' + Math.round(bet * state.payout) : 'LOSS записан. -$' + bet);
+
+  // Отправить в бот
+  sendToBot({
+    action: 'trade_logged',
+    asset: state.selectedAsset,
+    direction: state.selectedDir,
+    result: result
+  });
+};
+
+// Обновляем saveDeposit чтобы сохранять
+const _origSaveDeposit = saveDeposit;
+saveDeposit = function() {
+  const v = parseInt(document.getElementById('depositInput').value);
+  if (v > 0) {
+    state.deposit = v;
+    updateMM();
+    saveState();
+    document.getElementById('depositModal').classList.remove('show');
+    showToast('Депозит обновлён: $' + v);
+  }
+};
+
+// ═══ INIT ═══
+// API_URL — адрес бэкенда. Поменяй на свой после деплоя.
+const API_URL = window.TRADE_COCKPIT_API || '';
+// user_id берём из Telegram или генерируем
+const USER_ID = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user)
+  ? String(tg.initDataUnsafe.user.id)
+  : 'local_' + Math.random().toString(36).slice(2);
+
+loadState();
+updateMM();
+updateJournal();
+document.getElementById('martinCard').style.display = state.strategy === 'martin' ? 'block' : 'none';
+
+// ═══ ЗАГРУЗКА РЕАЛЬНЫХ ДАННЫХ СЕССИЙ ═══
+async function loadSessions() {
+  try {
+    const resp = await fetch(API_URL + '/api/sessions');
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    const container = document.getElementById('view-sessions');
+    // Обновляем время в хедере
+    const statusEl = document.querySelector('.header-status');
+    const activeSessions = data.sessions.filter(s => s.status === 'active');
+    if (activeSessions.length > 0 && statusEl) {
+      statusEl.innerHTML = '<span class="pulse-dot"></span>' + activeSessions[0].name;
+    }
+
+    // Перестраиваем карточки сессий
+    let sessionsHtml = '';
+    for (const s of data.sessions) {
+      const isActive = s.status === 'active';
+      const badgeClass = isActive ? 'badge-live' : 'badge-wait';
+      const badgeText = isActive
+        ? '<span class="pulse-dot" style="width:5px;height:5px"></span>Активна'
+        : 'Через ' + s.opens_in_hours + 'ч';
+
+      let pairsHtml = '';
+      if (s.pairs) {
+        for (const p of s.pairs) {
+          const vol = p.volatility;
+          const volClass = vol > 70 ? 'vol-high' : vol > 45 ? 'vol-mid' : 'vol-low';
+          const payClass = p.payout >= 90 ? 'payout-good' : 'payout-ok';
+          pairsHtml += '<div class="pair-row">' +
+            '<span class="pair-name">' + p.pair + '</span>' +
+            '<div class="vol-track"><div class="vol-fill ' + volClass + '" style="width:' + vol + '%"></div></div>' +
+            '<span class="vol-label">' + vol + '%</span>' +
+            '<span class="payout ' + payClass + '">' + p.payout + '%</span>' +
+            '</div>';
+        }
+      }
+
+      let verdictHtml = '';
+      if (isActive) {
+        const topPairs = s.pairs ? s.pairs.slice(0, 2).map(p => p.pair).join(', ') : '';
+        verdictHtml = '<div class="verdict verdict-go">' +
+          '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+          s.description + '. Топ: ' + topPairs + '</div>';
+      } else {
+        verdictHtml = '<div class="verdict verdict-wait">' +
+          '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+          'Откроется через ' + s.opens_in_hours + ' ч. ' + s.description + '</div>';
+      }
+
+      sessionsHtml += '<div class="card">' +
+        '<div class="card-header"><span class="card-title">' + s.name + '</span>' +
+        '<span class="badge ' + badgeClass + '">' + badgeText + '</span></div>' +
+        pairsHtml + verdictHtml + '</div>';
+    }
+
+    // Находим место для вставки (до section-label "Ближайшие новости")
+    const newsLabel = container.querySelector('.section-label');
+    if (newsLabel) {
+      // Удаляем старые карточки сессий
+      const oldCards = container.querySelectorAll('.card');
+      oldCards.forEach((card, i) => {
+        if (i < data.sessions.length) card.remove();
+      });
+      newsLabel.insertAdjacentHTML('beforebegin', sessionsHtml);
+    }
+  } catch (e) {
+    console.log('Sessions API unavailable, using static data');
+  }
+}
+
+// ═══ СОХРАНЕНИЕ СДЕЛКИ НА СЕРВЕР ═══
+async function saveTradeToServer(asset, direction, result) {
+  try {
+    const bet = Math.round(state.deposit * state.riskPercent / 100);
+    await fetch(API_URL + '/api/trades', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: USER_ID,
+        asset: asset,
+        direction: direction,
+        result: result,
+        bet_size: bet
+      })
+    });
+  } catch (e) {
+    console.log('Could not save trade to server');
+  }
+}
+
+// ═══ ЗАГРУЗКА АНАЛИТИКИ С СЕРВЕРА ═══
+async function loadAnalytics() {
+  try {
+    const resp = await fetch(API_URL + '/api/analytics/' + USER_ID + '?days=7');
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    // Обновляем статистику журнала
+    if (data.stats.total > 0) {
+      document.getElementById('jWinrate').textContent = data.stats.winrate + '%';
+      document.getElementById('jWinrate').style.color =
+        data.stats.winrate >= 55 ? 'var(--green)' : data.stats.winrate >= 45 ? 'var(--amber)' : 'var(--red)';
+      document.getElementById('jTrades').textContent = data.stats.total;
+      const pnl = Math.round(data.stats.total_pnl || 0);
+      document.getElementById('jPnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl;
+      document.getElementById('jPnl').style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+
+    // Обновляем лучшие часы
+    if (data.by_hour.length > 0) {
+      const hoursContainer = document.querySelector('#view-journal .card:nth-child(2)');
+      if (hoursContainer) {
+        const sorted = data.by_hour.sort((a, b) => b.winrate - a.winrate);
+        let hoursHtml = '<div class="card-header"><span class="card-title">Лучшие часы</span></div>';
+        for (const h of sorted.slice(0, 5)) {
+          const wrClass = h.winrate >= 60 ? 'wr-good' : h.winrate >= 50 ? 'wr-ok' : 'wr-bad';
+          hoursHtml += '<div class="hours-row"><span class="hours-label">' + h.hour + ':00</span>' +
+            '<span class="hours-wr ' + wrClass + '">' + h.winrate + '%</span></div>';
+        }
+        hoursContainer.innerHTML = hoursHtml;
+      }
+    }
+
+    // Обновляем дневную статистику для MM
+    if (data.today) {
+      state.todayWins = data.today.wins;
+      state.todayLosses = data.today.losses;
+      updateMM();
+    }
+
+  } catch (e) {
+    console.log('Analytics API unavailable, using local data');
+  }
+}
+
+// Патчим logTrade чтобы ещё отправлять на сервер
+const _origLogTrade2 = logTrade;
+logTrade = function(result) {
+  _origLogTrade2(result);
+  if (state.selectedAsset && state.selectedDir) {
+    saveTradeToServer(state.selectedAsset, state.selectedDir, result);
+  }
+};
+
+// Загружаем данные при старте
+loadSessions();
+loadAnalytics();
+// Обновляем сессии каждые 5 минут
+setInterval(loadSessions, 5 * 60 * 1000);
+</script>
+</body>
+</html>
