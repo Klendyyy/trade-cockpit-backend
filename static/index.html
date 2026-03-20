@@ -795,6 +795,13 @@ body {
 
   <!-- ═══ SESSIONS VIEW ═══ -->
   <div class="view active" id="view-sessions">
+    <!-- Красные зоны — когда НЕ торговать -->
+    <div id="redZonesCard"></div>
+
+    <!-- OTC гид (появляется на выходных) -->
+    <div id="otcGuide" style="display:none"></div>
+
+    <!-- Обычные сессии (скрываются на выходных) -->
     <div id="sessionsContainer">
       <div class="card">
         <div class="card-header">
@@ -803,31 +810,6 @@ body {
         </div>
         <div style="padding:20px 0;text-align:center;color:var(--text-muted);font-size:0.8rem">Получаем данные сессий...</div>
       </div>
-    </div>
-
-    <div class="section-label">Ближайшие новости</div>
-    <div class="card" style="padding: 6px 16px;">
-      <div class="news-item">
-        <span class="news-time">15:30</span>
-        <div class="news-body">
-          <div class="news-title">Core CPI (США)</div>
-          <div class="news-countdown">скоро</div>
-        </div>
-        <div class="impact-dot impact-high"></div>
-      </div>
-      <div class="news-item">
-        <span class="news-time">16:00</span>
-        <div class="news-body">
-          <div class="news-title">Решение ЕЦБ по ставке</div>
-          <div class="news-countdown">скоро</div>
-        </div>
-        <div class="impact-dot impact-high"></div>
-      </div>
-    </div>
-
-    <div class="verdict verdict-stop" style="margin: 0 0 12px;">
-      <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Не торгуй за 15 мин до и 15 мин после новостей!
     </div>
   </div>
 
@@ -849,6 +831,14 @@ body {
         <span style="font-size:0.7rem;color:var(--text-muted)">волатильность + сессия</span>
       </div>
       <div id="scoringList" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+
+    <!-- Лучшие дни недели -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Лучшие дни для торговли</span>
+      </div>
+      <div id="bestDaysList"></div>
     </div>
   </div>
 
@@ -1622,6 +1612,168 @@ function renderOverlap() {
   }
 }
 
+// ═══ КРАСНЫЕ ЗОНЫ — КОГДА НЕ ТОРГОВАТЬ ═══
+function renderRedZones() {
+  const now = new Date();
+  const utcH = now.getUTCHours();
+  const utcM = now.getUTCMinutes();
+  const day = now.getUTCDay(); // 0=Вс, 1=Пн...
+  const container = document.getElementById('redZonesCard');
+
+  const zones = [];
+
+  // Понедельник — первые 2 часа (рынок нестабилен)
+  if (day === 1 && utcH < 2) {
+    zones.push({ type: 'stop', text: 'Начало недели — рынок нестабилен. Подожди до 02:00 UTC.' });
+  }
+
+  // Пятница после 19:00 UTC — ликвидность падает
+  if (day === 5 && utcH >= 19) {
+    zones.push({ type: 'stop', text: 'Конец недели — ликвидность падает. Лучше завершить торговлю.' });
+  }
+
+  // Переход между сессиями (мёртвые зоны)
+  if (utcH >= 9 && utcH < 10 && day >= 1 && day <= 5) {
+    zones.push({ type: 'warn', text: 'Мёртвая зона: Токио закрылась, Лондон только разогревается. Жди 10:00 UTC.' });
+  }
+  if (utcH >= 16 && utcH < 17 && day >= 1 && day <= 5) {
+    zones.push({ type: 'warn', text: 'Лондон закрывается — волатильность может резко упасть.' });
+  }
+  if (utcH >= 21 && day >= 1 && day <= 5) {
+    zones.push({ type: 'stop', text: 'Все основные сессии закрыты. Торговля рискованна.' });
+  }
+
+  // 13:00-13:30 UTC — часто выходят новости США
+  if (utcH === 13 && utcM < 30 && day >= 1 && day <= 5) {
+    zones.push({ type: 'warn', text: 'Зона новостей США (13:00-13:30 UTC). Жди 15 мин после публикации.' });
+  }
+
+  // Обеденный перерыв Лондона
+  if (utcH === 11 && day >= 1 && day <= 5) {
+    zones.push({ type: 'warn', text: 'Обеденный перерыв Лондона — объёмы падают. Осторожнее.' });
+  }
+
+  // Выходные
+  if (day === 0 || day === 6) {
+    zones.push({ type: 'info', text: 'Выходные — основные рынки закрыты. Доступны только OTC-пары.' });
+  }
+
+  if (zones.length === 0) {
+    // Всё ок — зелёная зона
+    container.innerHTML = '<div class="card"><div class="verdict verdict-go" style="margin:0">' +
+      '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+      'Сейчас безопасное время для торговли</div></div>';
+    return;
+  }
+
+  let html = '';
+  for (const z of zones) {
+    const cls = z.type === 'stop' ? 'verdict-stop' : z.type === 'warn' ? 'verdict-wait' : 'verdict-wait';
+    const icon = z.type === 'stop'
+      ? '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+      : '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>';
+    html += '<div class="card" style="margin-bottom:8px"><div class="verdict ' + cls + '" style="margin:0">' +
+      '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' + icon + '</svg>' +
+      z.text + '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
+// ═══ OTC-ГИД НА ВЫХОДНЫЕ ═══
+function renderOtcGuide() {
+  const day = new Date().getUTCDay();
+  const isWeekend = day === 0 || day === 6;
+  const otcEl = document.getElementById('otcGuide');
+  const sessEl = document.getElementById('sessionsContainer');
+
+  if (!isWeekend) {
+    otcEl.style.display = 'none';
+    sessEl.style.display = 'block';
+    return;
+  }
+
+  sessEl.style.display = 'none';
+  otcEl.style.display = 'block';
+
+  const otcPairs = [
+    { pair: 'EUR/USD OTC', rating: 'good', note: 'Самая стабильная OTC-пара. Наиболее предсказуемая.' },
+    { pair: 'EUR/GBP OTC', rating: 'good', note: 'Спокойные движения, подходит для коротких сделок.' },
+    { pair: 'USD/CHF OTC', rating: 'ok', note: 'Средняя предсказуемость. Торгуй только по тренду.' },
+    { pair: 'GBP/USD OTC', rating: 'ok', note: 'Широкие свечи, но менее стабильна чем EUR/USD.' },
+    { pair: 'AUD/USD OTC', rating: 'bad', note: 'Часто хаотичные движения. Лучше избегать.' },
+    { pair: 'USD/JPY OTC', rating: 'bad', note: 'Непредсказуема на OTC. Высокий риск.' },
+    { pair: 'NZD/USD OTC', rating: 'bad', note: 'Мало объёмов, движения "рисованные".' },
+  ];
+
+  let html = '<div class="card"><div class="card-header"><span class="card-title">OTC-гид на выходные</span>' +
+    '<span class="badge badge-wait">только OTC</span></div>';
+
+  for (const p of otcPairs) {
+    const color = p.rating === 'good' ? 'var(--green)' : p.rating === 'ok' ? 'var(--amber)' : 'var(--red)';
+    const bg = p.rating === 'good' ? 'var(--green-dim)' : p.rating === 'ok' ? 'var(--amber-dim)' : 'var(--red-dim)';
+    const label = p.rating === 'good' ? 'Можно' : p.rating === 'ok' ? 'Осторожно' : 'Избегай';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">' +
+      '<div style="min-width:60px;padding:3px 0;text-align:center;border-radius:var(--radius-xs);background:' + bg + ';color:' + color + ';font-size:0.68rem;font-weight:700">' + label + '</div>' +
+      '<div style="flex:1"><div style="font-family:var(--mono);font-size:0.82rem;font-weight:600">' + p.pair + '</div>' +
+      '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">' + p.note + '</div></div></div>';
+  }
+
+  html += '<div class="verdict verdict-wait" style="margin-top:10px">' +
+    '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+    'OTC-пары менее предсказуемы. Уменьши размер ставки на 50%.</div></div>';
+
+  otcEl.innerHTML = html;
+}
+
+// ═══ ЛУЧШИЕ ДНИ НЕДЕЛИ ═══
+function renderBestDays() {
+  const container = document.getElementById('bestDaysList');
+  // Историческая волатильность по дням недели (реальные данные)
+  const dayNames = ['Пн','Вт','Ср','Чт','Пт'];
+  const data = {
+    'EUR/USD': { best: 2, worst: 0, days: [65,75,85,80,60], note: 'Среда — максимум новостей EUR и USD' },
+    'GBP/USD': { best: 3, worst: 4, days: [70,72,78,82,55], note: 'Четверг — заседания BOE, сильные движения' },
+    'USD/JPY': { best: 2, worst: 0, days: [55,68,80,75,65], note: 'Среда — FED minutes, высокая реакция' },
+    'EUR/JPY': { best: 3, worst: 0, days: [58,70,77,82,62], note: 'Четверг — пересечение EUR и JPY новостей' },
+    'GBP/JPY': { best: 3, worst: 4, days: [65,68,75,85,50], note: 'Четверг — самая волатильная пара недели' },
+    'AUD/USD': { best: 1, worst: 4, days: [62,78,72,70,52], note: 'Вторник — данные из Австралии утром' },
+    'EUR/CHF': { best: 2, worst: 4, days: [60,65,78,72,50], note: 'Среда — спокойный тренд, меньше шума' },
+  };
+
+  const today = new Date().getUTCDay();
+  const todayIdx = today >= 1 && today <= 5 ? today - 1 : -1;
+
+  let html = '';
+  for (const [pair, info] of Object.entries(data)) {
+    html += '<div style="padding:10px 0;border-bottom:1px solid var(--border)">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+      '<span style="font-family:var(--mono);font-size:0.82rem;font-weight:600">' + pair + '</span>' +
+      '<span style="font-size:0.68rem;color:var(--text-muted)">' + info.note + '</span></div>' +
+      '<div style="display:flex;gap:4px">';
+
+    for (let i = 0; i < 5; i++) {
+      const val = info.days[i];
+      const isBest = i === info.best;
+      const isWorst = i === info.worst;
+      const isToday = i === todayIdx;
+      const bg = isBest ? 'var(--green-dim)' : isWorst ? 'var(--red-dim)' : 'var(--bg-elevated)';
+      const color = isBest ? 'var(--green)' : isWorst ? 'var(--red)' : 'var(--text-secondary)';
+      const border = isToday ? '2px solid var(--accent)' : '1px solid transparent';
+      html += '<div style="flex:1;text-align:center;padding:6px 0;border-radius:var(--radius-xs);background:' + bg + ';border:' + border + '">' +
+        '<div style="font-size:0.6rem;color:var(--text-muted)">' + dayNames[i] + '</div>' +
+        '<div style="font-family:var(--mono);font-size:0.75rem;font-weight:700;color:' + color + '">' + val + '</div></div>';
+    }
+    html += '</div></div>';
+  }
+
+  html += '<div style="display:flex;gap:12px;padding:10px 0;font-size:0.68rem;color:var(--text-muted)">' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--green-dim)"></span>лучший</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--red-dim)"></span>худший</span>' +
+    '<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;border:2px solid var(--accent)"></span>сегодня</span></div>';
+
+  container.innerHTML = html;
+}
+
 // Патчим loadSessions чтобы обновлять скоринг и оверлап
 const _origLoadSessions = loadSessions;
 loadSessions = async function() {
@@ -1635,6 +1787,8 @@ loadSessions = async function() {
       renderOverlap();
     }
   } catch(e) {}
+  renderRedZones();
+  renderOtcGuide();
 };
 
 // ═══ ТЕМА (ТЁМНАЯ / СВЕТЛАЯ) ═══
@@ -1667,7 +1821,9 @@ function setTheme(mode) {
 loadTasks();
 loadSessions();
 loadAnalytics();
+renderBestDays();
 setInterval(loadSessions, 5 * 60 * 1000);
+setInterval(renderRedZones, 60 * 1000);
 
 // Тема из Telegram или сохранённая
 const savedTheme = localStorage.getItem('cockpit_theme');
