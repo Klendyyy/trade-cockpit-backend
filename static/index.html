@@ -794,71 +794,23 @@ body {
 
   <!-- ═══ SESSIONS VIEW ═══ -->
   <div class="view active" id="view-sessions">
-    <div class="card" id="london-card">
-      <div class="card-header">
-        <span class="card-title">London</span>
-        <span class="badge badge-live"><span class="pulse-dot" style="width:5px;height:5px"></span>Активна</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-name">EUR/USD</span>
-        <div class="vol-track"><div class="vol-fill vol-high" style="width:82%"></div></div>
-        <span class="vol-label">82%</span>
-        <span class="payout payout-good">92%</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-name">GBP/USD</span>
-        <div class="vol-track"><div class="vol-fill vol-high" style="width:74%"></div></div>
-        <span class="vol-label">74%</span>
-        <span class="payout payout-good">90%</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-name">EUR/GBP</span>
-        <div class="vol-track"><div class="vol-fill vol-mid" style="width:56%"></div></div>
-        <span class="vol-label">56%</span>
-        <span class="payout payout-ok">87%</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-name">USD/CHF</span>
-        <div class="vol-track"><div class="vol-fill vol-mid" style="width:48%"></div></div>
-        <span class="vol-label">48%</span>
-        <span class="payout payout-ok">86%</span>
-      </div>
-      <div class="verdict verdict-go">
-        <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        Лучшая сессия для торговли. Топ: EUR/USD, GBP/USD
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">New York</span>
-        <span class="badge badge-wait">Через 2ч</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-name">USD/CAD</span>
-        <div class="vol-track"><div class="vol-fill vol-mid" style="width:60%"></div></div>
-        <span class="vol-label">60%</span>
-        <span class="payout payout-good">91%</span>
-      </div>
-      <div class="pair-row">
-        <span class="pair-name">USD/JPY</span>
-        <div class="vol-track"><div class="vol-fill vol-mid" style="width:52%"></div></div>
-        <span class="vol-label">52%</span>
-        <span class="payout payout-ok">88%</span>
-      </div>
-      <div class="verdict verdict-wait">
-        <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Откроется в 15:30 МСК. Ожидается высокая волатильность.
+    <div id="sessionsContainer">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Загрузка...</span>
+          <span class="badge badge-wait">ожидание</span>
+        </div>
+        <div style="padding:20px 0;text-align:center;color:var(--text-muted);font-size:0.8rem">Получаем данные сессий...</div>
       </div>
     </div>
 
     <div class="section-label">Ближайшие новости</div>
     <div class="card" style="padding: 6px 16px;">
       <div class="news-item">
-        <span class="news-time" id="news1-time">15:30</span>
+        <span class="news-time">15:30</span>
         <div class="news-body">
           <div class="news-title">Core CPI (США)</div>
-          <div class="news-countdown" id="news1-cd">через 47 мин</div>
+          <div class="news-countdown">скоро</div>
         </div>
         <div class="impact-dot impact-high"></div>
       </div>
@@ -866,17 +818,9 @@ body {
         <span class="news-time">16:00</span>
         <div class="news-body">
           <div class="news-title">Решение ЕЦБ по ставке</div>
-          <div class="news-countdown">через 1ч 17мин</div>
+          <div class="news-countdown">скоро</div>
         </div>
         <div class="impact-dot impact-high"></div>
-      </div>
-      <div class="news-item">
-        <span class="news-time">17:30</span>
-        <div class="news-body">
-          <div class="news-title">Запасы нефти (EIA)</div>
-          <div class="news-countdown">через 2ч 47мин</div>
-        </div>
-        <div class="impact-dot impact-mid"></div>
       </div>
     </div>
 
@@ -942,36 +886,18 @@ body {
     <div class="card">
       <div class="card-header">
         <span class="card-title">Чеклист перед торговлей</span>
-        <span class="badge badge-wait" id="checkProgress">0 / 6</span>
+        <span class="badge badge-wait" id="checkProgress">0 / 0</span>
       </div>
-      <div id="checklistItems">
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="check-text">Определил тренд на старшем ТФ</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="check-text">Проверил экономический календарь</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="check-text">Нет тильта (менее 3 потерь подряд)</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="check-text">Размер ставки по ММ</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="check-text">Торгую в свою лучшую сессию</span>
-        </div>
-        <div class="check-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span class="check-text">Выспался, спокойное состояние</span>
-        </div>
+      <div id="checklistItems"></div>
+      <div id="emptyChecklist" style="padding:16px 0;text-align:center;color:var(--text-muted);font-size:0.82rem">
+        Добавь свои задачи перед торговлей
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="newTaskInput" placeholder="Напиши задачу..." style="flex:1;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-active);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font);font-size:0.82rem;outline:none">
+        <button onclick="addTask()" style="padding:10px 16px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:var(--font);font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap">Добавить</button>
       </div>
       <div class="verdict verdict-wait" id="checkVerdict" style="margin-top: 12px;">
-        Заполни все пункты перед торговлей
+        Добавь задачи и заполни их перед торговлей
       </div>
     </div>
 
@@ -981,15 +907,15 @@ body {
       </div>
       <div class="streak-label">Дни, когда следовал всем правилам</div>
       <div class="streak-dots" id="streakDots">
-        <div class="streak-dot streak-on">Пн</div>
-        <div class="streak-dot streak-on">Вт</div>
-        <div class="streak-dot streak-on">Ср</div>
-        <div class="streak-dot streak-on">Чт</div>
-        <div class="streak-dot streak-today">Пт</div>
+        <div class="streak-dot streak-off">Пн</div>
+        <div class="streak-dot streak-off">Вт</div>
+        <div class="streak-dot streak-off">Ср</div>
+        <div class="streak-dot streak-off">Чт</div>
+        <div class="streak-dot streak-off">Пт</div>
         <div class="streak-dot streak-off">Сб</div>
         <div class="streak-dot streak-off">Вс</div>
       </div>
-      <div class="streak-msg">4 дня подряд! Продолжай в том же духе.</div>
+      <div class="streak-msg" id="streakMsg" style="color:var(--text-muted)">Начни заполнять чеклист каждый день</div>
     </div>
   </div>
 
@@ -997,15 +923,15 @@ body {
   <div class="view" id="view-journal">
     <div class="journal-stats">
       <div class="j-stat">
-        <div class="j-stat-value" style="color:var(--green)" id="jWinrate">68%</div>
+        <div class="j-stat-value" style="color:var(--text-muted)" id="jWinrate">—</div>
         <div class="j-stat-label">Винрейт</div>
       </div>
       <div class="j-stat">
-        <div class="j-stat-value" id="jTrades">22</div>
+        <div class="j-stat-value" id="jTrades">0</div>
         <div class="j-stat-label">Сделки</div>
       </div>
       <div class="j-stat">
-        <div class="j-stat-value" style="color:var(--green)" id="jPnl">+$86</div>
+        <div class="j-stat-value" style="color:var(--text-muted)" id="jPnl">$0</div>
         <div class="j-stat-label">P/L</div>
       </div>
     </div>
@@ -1014,7 +940,7 @@ body {
       <div class="card-header">
         <span class="card-title">Хитмэп активности</span>
       </div>
-      <div class="heatmap-grid">
+      <div class="heatmap-grid" id="heatmapGrid">
         <div class="heat-day-label">Пн</div>
         <div class="heat-day-label">Вт</div>
         <div class="heat-day-label">Ср</div>
@@ -1022,27 +948,9 @@ body {
         <div class="heat-day-label">Пт</div>
         <div class="heat-day-label">Сб</div>
         <div class="heat-day-label">Вс</div>
-        <div class="heat-cell h-profit-2">+3</div>
-        <div class="heat-cell h-profit-3">+5</div>
-        <div class="heat-cell h-profit-1">+2</div>
-        <div class="heat-cell h-profit-3">+4</div>
-        <div class="heat-cell h-profit-2">+3</div>
-        <div class="heat-cell h-empty"></div>
-        <div class="heat-cell h-empty"></div>
-        <div class="heat-cell h-profit-1">+1</div>
-        <div class="heat-cell h-profit-2">+3</div>
-        <div class="heat-cell h-loss">-2</div>
-        <div class="heat-cell h-profit-3">+4</div>
-        <div class="heat-cell h-profit-1">+2</div>
-        <div class="heat-cell h-empty"></div>
-        <div class="heat-cell h-empty"></div>
-        <div class="heat-cell h-profit-2">+2</div>
-        <div class="heat-cell h-loss">-1</div>
-        <div class="heat-cell h-profit-3">+5</div>
-        <div class="heat-cell h-profit-2">+3</div>
-        <div class="heat-cell h-profit-1">+1</div>
-        <div class="heat-cell h-empty"></div>
-        <div class="heat-cell h-empty"></div>
+      </div>
+      <div id="emptyHeatmap" style="padding:16px 0;text-align:center;color:var(--text-muted);font-size:0.82rem">
+        Записывай сделки — здесь появится твоя активность
       </div>
     </div>
 
@@ -1050,20 +958,8 @@ body {
       <div class="card-header">
         <span class="card-title">Лучшие часы</span>
       </div>
-      <div class="hours-row">
-        <span class="hours-label">09:00–11:00 (Лондон)</span>
-        <span class="hours-wr wr-good">78%</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-label">14:00–16:00 (NY overlap)</span>
-        <span class="hours-wr wr-good">71%</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-label">19:00–21:00 (вечер)</span>
-        <span class="hours-wr wr-bad">42%</span>
-      </div>
-      <div class="verdict verdict-stop" style="margin-top: 8px;">
-        Не торгуй вечером — твой WR падает ниже 50%
+      <div id="hoursContainer">
+        <div style="padding:12px 0;text-align:center;color:var(--text-muted);font-size:0.82rem">Пока нет данных</div>
       </div>
     </div>
 
@@ -1071,24 +967,8 @@ body {
       <div class="card-header">
         <span class="card-title">Лучшие активы</span>
       </div>
-      <div class="hours-row">
-        <span class="hours-label">EUR/USD</span>
-        <span class="hours-wr wr-good">74%</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-label">GBP/USD</span>
-        <span class="hours-wr wr-good">69%</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-label">USD/JPY</span>
-        <span class="hours-wr wr-ok">55%</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-label">BTC/USD</span>
-        <span class="hours-wr wr-bad">38%</span>
-      </div>
-      <div class="verdict verdict-stop" style="margin-top: 8px;">
-        Избегай BTC/USD — у тебя минусовая статистика
+      <div id="assetsContainer">
+        <div style="padding:12px 0;text-align:center;color:var(--text-muted);font-size:0.82rem">Пока нет данных</div>
       </div>
     </div>
   </div>
@@ -1466,15 +1346,13 @@ async function loadSessions() {
     if (!resp.ok) return;
     const data = await resp.json();
 
-    const container = document.getElementById('view-sessions');
-    // Обновляем время в хедере
+    const container = document.getElementById('sessionsContainer');
     const statusEl = document.querySelector('.header-status');
     const activeSessions = data.sessions.filter(s => s.status === 'active');
     if (activeSessions.length > 0 && statusEl) {
       statusEl.innerHTML = '<span class="pulse-dot"></span>' + activeSessions[0].name;
     }
 
-    // Перестраиваем карточки сессий
     let sessionsHtml = '';
     for (const s of data.sessions) {
       const isActive = s.status === 'active';
@@ -1483,12 +1361,12 @@ async function loadSessions() {
         ? '<span class="pulse-dot" style="width:5px;height:5px"></span>Активна'
         : 'Через ' + s.opens_in_hours + 'ч';
 
-      let pairsHtml = '';
+      let pairsHtml = '<div class="pairs-scroll" style="max-height:220px;overflow-y:auto">';
       if (s.pairs) {
         for (const p of s.pairs) {
           const vol = p.volatility;
           const volClass = vol > 70 ? 'vol-high' : vol > 45 ? 'vol-mid' : 'vol-low';
-          const payClass = p.payout >= 90 ? 'payout-good' : 'payout-ok';
+          const payClass = p.payout >= 80 ? 'payout-good' : 'payout-ok';
           pairsHtml += '<div class="pair-row">' +
             '<span class="pair-name">' + p.pair + '</span>' +
             '<div class="vol-track"><div class="vol-fill ' + volClass + '" style="width:' + vol + '%"></div></div>' +
@@ -1496,6 +1374,10 @@ async function loadSessions() {
             '<span class="payout ' + payClass + '">' + p.payout + '%</span>' +
             '</div>';
         }
+      }
+      pairsHtml += '</div>';
+      if (s.pairs && s.pairs.length > 5) {
+        pairsHtml += '<div style="text-align:center;padding:4px 0;font-size:0.7rem;color:var(--text-muted)">Прокрути для остальных пар</div>';
       }
 
       let verdictHtml = '';
@@ -1515,19 +1397,9 @@ async function loadSessions() {
         '<span class="badge ' + badgeClass + '">' + badgeText + '</span></div>' +
         pairsHtml + verdictHtml + '</div>';
     }
-
-    // Находим место для вставки (до section-label "Ближайшие новости")
-    const newsLabel = container.querySelector('.section-label');
-    if (newsLabel) {
-      // Удаляем старые карточки сессий
-      const oldCards = container.querySelectorAll('.card');
-      oldCards.forEach((card, i) => {
-        if (i < data.sessions.length) card.remove();
-      });
-      newsLabel.insertAdjacentHTML('beforebegin', sessionsHtml);
-    }
+    container.innerHTML = sessionsHtml;
   } catch (e) {
-    console.log('Sessions API unavailable, using static data');
+    console.log('Sessions API unavailable');
   }
 }
 
@@ -1538,17 +1410,9 @@ async function saveTradeToServer(asset, direction, result) {
     await fetch(API_URL + '/api/trades', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: USER_ID,
-        asset: asset,
-        direction: direction,
-        result: result,
-        bet_size: bet
-      })
+      body: JSON.stringify({ user_id: USER_ID, asset: asset, direction: direction, result: result, bet_size: bet })
     });
-  } catch (e) {
-    console.log('Could not save trade to server');
-  }
+  } catch (e) { console.log('Could not save trade to server'); }
 }
 
 // ═══ ЗАГРУЗКА АНАЛИТИКИ С СЕРВЕРА ═══
@@ -1558,41 +1422,119 @@ async function loadAnalytics() {
     if (!resp.ok) return;
     const data = await resp.json();
 
-    // Обновляем статистику журнала
     if (data.stats.total > 0) {
       document.getElementById('jWinrate').textContent = data.stats.winrate + '%';
-      document.getElementById('jWinrate').style.color =
-        data.stats.winrate >= 55 ? 'var(--green)' : data.stats.winrate >= 45 ? 'var(--amber)' : 'var(--red)';
+      document.getElementById('jWinrate').style.color = data.stats.winrate >= 55 ? 'var(--green)' : data.stats.winrate >= 45 ? 'var(--amber)' : 'var(--red)';
       document.getElementById('jTrades').textContent = data.stats.total;
       const pnl = Math.round(data.stats.total_pnl || 0);
       document.getElementById('jPnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl;
       document.getElementById('jPnl').style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('emptyHeatmap').style.display = 'none';
     }
 
-    // Обновляем лучшие часы
+    // Лучшие часы
     if (data.by_hour.length > 0) {
-      const hoursContainer = document.querySelector('#view-journal .card:nth-child(2)');
-      if (hoursContainer) {
-        const sorted = data.by_hour.sort((a, b) => b.winrate - a.winrate);
-        let hoursHtml = '<div class="card-header"><span class="card-title">Лучшие часы</span></div>';
-        for (const h of sorted.slice(0, 5)) {
-          const wrClass = h.winrate >= 60 ? 'wr-good' : h.winrate >= 50 ? 'wr-ok' : 'wr-bad';
-          hoursHtml += '<div class="hours-row"><span class="hours-label">' + h.hour + ':00</span>' +
-            '<span class="hours-wr ' + wrClass + '">' + h.winrate + '%</span></div>';
-        }
-        hoursContainer.innerHTML = hoursHtml;
+      const hc = document.getElementById('hoursContainer');
+      const sorted = data.by_hour.sort((a, b) => b.winrate - a.winrate);
+      let html = '';
+      for (const h of sorted.slice(0, 5)) {
+        const wrClass = h.winrate >= 60 ? 'wr-good' : h.winrate >= 50 ? 'wr-ok' : 'wr-bad';
+        html += '<div class="hours-row"><span class="hours-label">' + h.hour + ':00</span><span class="hours-wr ' + wrClass + '">' + h.winrate + '%</span></div>';
       }
+      hc.innerHTML = html;
     }
 
-    // Обновляем дневную статистику для MM
+    // Лучшие активы
+    if (data.by_asset.length > 0) {
+      const ac = document.getElementById('assetsContainer');
+      const sorted = data.by_asset.sort((a, b) => b.winrate - a.winrate);
+      let html = '';
+      for (const a of sorted) {
+        const wrClass = a.winrate >= 60 ? 'wr-good' : a.winrate >= 50 ? 'wr-ok' : 'wr-bad';
+        html += '<div class="hours-row"><span class="hours-label">' + a.asset + ' (' + a.total + ' сд.)</span><span class="hours-wr ' + wrClass + '">' + a.winrate + '%</span></div>';
+      }
+      ac.innerHTML = html;
+    }
+
     if (data.today) {
       state.todayWins = data.today.wins;
       state.todayLosses = data.today.losses;
       updateMM();
     }
+  } catch (e) { console.log('Analytics API unavailable'); }
+}
 
-  } catch (e) {
-    console.log('Analytics API unavailable, using local data');
+// ═══ ЧЕКЛИСТ — СВОИ ЗАДАЧИ ═══
+let tasks = [];
+function loadTasks() {
+  try {
+    const saved = localStorage.getItem('cockpit_tasks');
+    if (saved) tasks = JSON.parse(saved);
+  } catch(e) {}
+  renderTasks();
+}
+function saveTasks() {
+  try { localStorage.setItem('cockpit_tasks', JSON.stringify(tasks)); } catch(e) {}
+}
+function addTask() {
+  const input = document.getElementById('newTaskInput');
+  const text = input.value.trim();
+  if (!text) return;
+  tasks.push({ text: text, done: false });
+  input.value = '';
+  saveTasks();
+  renderTasks();
+}
+document.getElementById('newTaskInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') addTask();
+});
+function renderTasks() {
+  const container = document.getElementById('checklistItems');
+  const empty = document.getElementById('emptyChecklist');
+  if (tasks.length === 0) {
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('checkProgress').textContent = '0 / 0';
+    document.getElementById('checkVerdict').className = 'verdict verdict-wait';
+    document.getElementById('checkVerdict').textContent = 'Добавь задачи и заполни их перед торговлей';
+    return;
+  }
+  empty.style.display = 'none';
+  let html = '';
+  tasks.forEach((t, i) => {
+    html += '<div class="check-item ' + (t.done ? 'done' : '') + '" onclick="toggleTaskCheck(' + i + ')">' +
+      '<div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>' +
+      '<span class="check-text" style="flex:1">' + t.text + '</span>' +
+      '<span onclick="event.stopPropagation();removeTask(' + i + ')" style="color:var(--text-muted);font-size:18px;padding:0 4px;cursor:pointer">&times;</span>' +
+      '</div>';
+  });
+  container.innerHTML = html;
+  updateCheckProgress();
+}
+function toggleTaskCheck(i) {
+  tasks[i].done = !tasks[i].done;
+  saveTasks();
+  renderTasks();
+}
+function removeTask(i) {
+  tasks.splice(i, 1);
+  saveTasks();
+  renderTasks();
+}
+function updateCheckProgress() {
+  const done = tasks.filter(t => t.done).length;
+  const total = tasks.length;
+  document.getElementById('checkProgress').textContent = done + ' / ' + total;
+  const verdict = document.getElementById('checkVerdict');
+  if (total === 0) {
+    verdict.className = 'verdict verdict-wait';
+    verdict.textContent = 'Добавь задачи и заполни их перед торговлей';
+  } else if (done === total) {
+    verdict.className = 'verdict verdict-go';
+    verdict.innerHTML = '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Все пункты пройдены. Ты готов торговать!';
+  } else {
+    verdict.className = 'verdict verdict-wait';
+    verdict.textContent = 'Заполни все пункты (' + done + '/' + total + ')';
   }
 }
 
@@ -1606,9 +1548,9 @@ logTrade = function(result) {
 };
 
 // Загружаем данные при старте
+loadTasks();
 loadSessions();
 loadAnalytics();
-// Обновляем сессии каждые 5 минут
 setInterval(loadSessions, 5 * 60 * 1000);
 </script>
 </body>
