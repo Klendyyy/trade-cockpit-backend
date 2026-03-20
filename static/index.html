@@ -785,8 +785,9 @@ body {
   </div>
 
   <!-- TABS -->
-  <div class="tab-bar" id="tabBar">
+  <div class="tab-bar" id="tabBar" style="overflow-x:auto;flex-wrap:nowrap">
     <button class="tab-btn active" data-tab="sessions">Сессии</button>
+    <button class="tab-btn" data-tab="payout">Скоринг</button>
     <button class="tab-btn" data-tab="mm">MM</button>
     <button class="tab-btn" data-tab="checklist">Чеклист</button>
     <button class="tab-btn" data-tab="journal">Журнал</button>
@@ -827,6 +828,27 @@ body {
     <div class="verdict verdict-stop" style="margin: 0 0 12px;">
       <svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Не торгуй за 15 мин до и 15 мин после новостей!
+    </div>
+  </div>
+
+  <!-- ═══ PAYOUT & SCORING VIEW ═══ -->
+  <div class="view" id="view-payout">
+    <!-- Оверлап сессий -->
+    <div class="card" id="overlapCard" style="display:none">
+      <div class="card-header">
+        <span class="card-title">Оверлап сессий</span>
+        <span class="badge badge-live" id="overlapBadge"></span>
+      </div>
+      <div class="verdict verdict-go" id="overlapMsg"></div>
+    </div>
+
+    <!-- Карта скоринга -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Скоринг пар</span>
+        <span style="font-size:0.7rem;color:var(--text-muted)">волатильность + сессия</span>
+      </div>
+      <div id="scoringList" style="max-height:400px;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -1366,12 +1388,10 @@ async function loadSessions() {
         for (const p of s.pairs) {
           const vol = p.volatility;
           const volClass = vol > 70 ? 'vol-high' : vol > 45 ? 'vol-mid' : 'vol-low';
-          const payClass = p.payout >= 80 ? 'payout-good' : 'payout-ok';
           pairsHtml += '<div class="pair-row">' +
             '<span class="pair-name">' + p.pair + '</span>' +
             '<div class="vol-track"><div class="vol-fill ' + volClass + '" style="width:' + vol + '%"></div></div>' +
             '<span class="vol-label">' + vol + '%</span>' +
-            '<span class="payout ' + payClass + '">' + p.payout + '%</span>' +
             '</div>';
         }
       }
@@ -1547,11 +1567,112 @@ logTrade = function(result) {
   }
 };
 
+// ═══ СКОРИНГ ПАР ═══
+let sessionsData = [];
+function renderScoring() {
+  const container = document.getElementById('scoringList');
+  if (!sessionsData.length) { container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:0.82rem">Загрузка...</div>'; return; }
+
+  const activePairs = {};
+  for (const s of sessionsData) {
+    if (s.status === 'active' && s.pairs) {
+      for (const p of s.pairs) {
+        if (!activePairs[p.pair]) activePairs[p.pair] = { vol: p.volatility, sessions: [] };
+        activePairs[p.pair].sessions.push(s.name);
+        activePairs[p.pair].vol = Math.max(activePairs[p.pair].vol, p.volatility);
+      }
+    }
+  }
+
+  const scored = Object.keys(activePairs).map(pair => {
+    const d = activePairs[pair];
+    const volScore = Math.min(10, Math.round(d.vol / 10));
+    const sessScore = d.sessions.length >= 2 ? 10 : 6;
+    const total = Math.round(volScore * 0.65 + sessScore * 0.35);
+    return { pair, score: total, vol: d.vol, sessions: d.sessions };
+  }).sort((a, b) => b.score - a.score);
+
+  let html = '';
+  for (const s of scored) {
+    const color = s.score >= 8 ? 'var(--green)' : s.score >= 5 ? 'var(--amber)' : 'var(--red)';
+    const label = s.score >= 8 ? 'Торгуй' : s.score >= 5 ? 'Осторожно' : 'Не лезь';
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">' +
+      '<div style="width:36px;height:36px;border-radius:var(--radius-xs);background:' + (s.score >= 8 ? 'var(--green-dim)' : s.score >= 5 ? 'var(--amber-dim)' : 'var(--red-dim)') + ';display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1rem;font-weight:700;color:' + color + '">' + s.score + '</div>' +
+      '<div style="flex:1"><div style="font-family:var(--mono);font-size:0.82rem;font-weight:600">' + s.pair + '</div>' +
+      '<div style="font-size:0.68rem;color:var(--text-muted)">Vol ' + s.vol + '% | ' + label + '</div></div>' +
+      (s.sessions.length >= 2 ? '<span style="font-size:0.6rem;padding:2px 6px;border-radius:10px;background:var(--green-dim);color:var(--green);font-weight:600">overlap</span>' : '') +
+      '</div>';
+  }
+  if (scored.length === 0) html = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:0.82rem">Нет активных сессий сейчас</div>';
+  container.innerHTML = html;
+}
+
+// ═══ ОВЕРЛАП СЕССИЙ ═══
+function renderOverlap() {
+  const active = sessionsData.filter(s => s.status === 'active');
+  const card = document.getElementById('overlapCard');
+  if (active.length >= 2) {
+    card.style.display = 'block';
+    const names = active.map(s => s.name).join(' + ');
+    document.getElementById('overlapBadge').innerHTML = '<span class="pulse-dot" style="width:5px;height:5px"></span>' + names;
+    document.getElementById('overlapMsg').innerHTML = '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' +
+      'Пересечение ' + names + '! Максимальная ликвидность и волатильность. Лучшее время для торговли.';
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+// Патчим loadSessions чтобы обновлять скоринг и оверлап
+const _origLoadSessions = loadSessions;
+loadSessions = async function() {
+  await _origLoadSessions();
+  try {
+    const resp = await fetch(API_URL + '/api/sessions');
+    if (resp.ok) {
+      const data = await resp.json();
+      sessionsData = data.sessions;
+      renderScoring();
+      renderOverlap();
+    }
+  } catch(e) {}
+};
+
+// ═══ ТЕМА (ТЁМНАЯ / СВЕТЛАЯ) ═══
+function setTheme(mode) {
+  if (mode === 'light') {
+    document.documentElement.style.setProperty('--bg-deep', '#f5f5f0');
+    document.documentElement.style.setProperty('--bg-card', '#ffffff');
+    document.documentElement.style.setProperty('--bg-surface', '#f0efe8');
+    document.documentElement.style.setProperty('--bg-elevated', '#e8e7e0');
+    document.documentElement.style.setProperty('--border', 'rgba(0,0,0,0.08)');
+    document.documentElement.style.setProperty('--border-active', 'rgba(0,0,0,0.15)');
+    document.documentElement.style.setProperty('--text-primary', '#1a1a1a');
+    document.documentElement.style.setProperty('--text-secondary', '#666660');
+    document.documentElement.style.setProperty('--text-muted', '#99998e');
+  } else {
+    document.documentElement.style.setProperty('--bg-deep', '#0a0b0f');
+    document.documentElement.style.setProperty('--bg-card', '#12141a');
+    document.documentElement.style.setProperty('--bg-surface', '#1a1d26');
+    document.documentElement.style.setProperty('--bg-elevated', '#22252f');
+    document.documentElement.style.setProperty('--border', 'rgba(255,255,255,0.06)');
+    document.documentElement.style.setProperty('--border-active', 'rgba(255,255,255,0.12)');
+    document.documentElement.style.setProperty('--text-primary', '#e8e6e1');
+    document.documentElement.style.setProperty('--text-secondary', '#8a8880');
+    document.documentElement.style.setProperty('--text-muted', '#5a5850');
+  }
+  try { localStorage.setItem('cockpit_theme', mode); } catch(e) {}
+}
+
 // Загружаем данные при старте
 loadTasks();
 loadSessions();
 loadAnalytics();
 setInterval(loadSessions, 5 * 60 * 1000);
+
+// Тема из Telegram или сохранённая
+const savedTheme = localStorage.getItem('cockpit_theme');
+if (savedTheme) { setTheme(savedTheme); }
+else if (tg && tg.colorScheme === 'light') { setTheme('light'); }
 </script>
 </body>
 </html>
