@@ -13,13 +13,32 @@ TWELVE_DATA_KEY = os.getenv("TWELVE_DATA_KEY", "demo")
 DB_PATH = os.getenv("DB_PATH", "trades.db")
 PORT = int(os.getenv("PORT", 8000))
 
-PAIRS = ["EUR/USD","GBP/USD","USD/JPY","USD/CAD","EUR/GBP","AUD/USD","USD/CHF","NZD/USD","EUR/JPY","GBP/JPY"]
-PAYOUTS = {"EUR/USD":92,"GBP/USD":90,"USD/JPY":88,"USD/CAD":91,"EUR/GBP":87,"AUD/USD":89,"USD/CHF":86,"NZD/USD":85,"EUR/JPY":86,"GBP/JPY":85}
+PAIRS = [
+    "EUR/CHF","EUR/USD","AUD/CAD","GBP/AUD","EUR/JPY","GBP/CAD","GBP/JPY",
+    "EUR/CAD","EUR/AUD","GBP/CHF","AUD/JPY","CAD/JPY","AUD/CHF",
+    "AUD/USD","CAD/CHF","EUR/GBP","USD/JPY","USD/CAD","CHF/JPY","USD/CHF","GBP/USD"
+]
+PAYOUTS = {
+    "EUR/CHF":88,"EUR/USD":88,"AUD/CAD":87,"GBP/AUD":87,"EUR/JPY":82,
+    "GBP/CAD":81,"GBP/JPY":81,"EUR/CAD":74,"EUR/AUD":73,"GBP/CHF":73,
+    "AUD/JPY":70,"CAD/JPY":70,"AUD/CHF":65,"AUD/USD":64,"CAD/CHF":58,
+    "EUR/GBP":57,"USD/JPY":51,"USD/CAD":50,"CHF/JPY":49,"USD/CHF":45,"GBP/USD":40
+}
 
 SESSIONS = {
-    "tokyo":    {"name":"Токио",    "open":0,  "close":9,  "pairs":["USD/JPY","AUD/USD","EUR/JPY","NZD/USD","GBP/JPY"], "desc":"Азиатская сессия, спокойная волатильность"},
-    "london":   {"name":"Лондон",   "open":7,  "close":16, "pairs":["EUR/USD","GBP/USD","EUR/GBP","USD/CHF","EUR/JPY"], "desc":"Самая активная, высокая волатильность"},
-    "new_york": {"name":"Нью-Йорк", "open":12, "close":21, "pairs":["EUR/USD","USD/CAD","GBP/USD","USD/JPY","USD/CHF"], "desc":"Высокая ликвидность, много новостей"},
+    "tokyo": {"name":"Токио", "open":0, "close":9, "pairs":[
+        "USD/JPY","AUD/JPY","EUR/JPY","GBP/JPY","CAD/JPY","CHF/JPY",
+        "AUD/USD","AUD/CAD","AUD/CHF","EUR/AUD","GBP/AUD"
+    ], "desc":"Азиатская сессия, спокойная волатильность"},
+    "london": {"name":"Лондон", "open":7, "close":16, "pairs":[
+        "EUR/USD","GBP/USD","EUR/CHF","EUR/GBP","GBP/CHF","EUR/JPY",
+        "GBP/JPY","EUR/CAD","EUR/AUD","GBP/CAD","GBP/AUD","USD/CHF",
+        "AUD/USD","AUD/CAD","CAD/CHF"
+    ], "desc":"Самая активная, высокая волатильность"},
+    "new_york": {"name":"Нью-Йорк", "open":12, "close":21, "pairs":[
+        "EUR/USD","GBP/USD","USD/CAD","USD/JPY","USD/CHF","CAD/JPY",
+        "EUR/CAD","GBP/CAD","AUD/USD","AUD/CAD","CHF/JPY","CAD/CHF"
+    ], "desc":"Высокая ликвидность, много новостей"},
 }
 
 vol_cache = {}; vol_ts = 0
@@ -51,17 +70,25 @@ def get_sessions():
 async def get_vol():
     global vol_cache, vol_ts
     if time.time()-vol_ts < 300 and vol_cache: return vol_cache
-    bp = {"EURUSD":1.08,"GBPUSD":1.27,"USDJPY":155,"USDCAD":1.37,"EURGBP":0.85,"AUDUSD":0.65,"USDCHF":0.88,"NZDUSD":0.60,"EURJPY":167,"GBPJPY":197}
+    bp = {
+        "EURUSD":1.08,"GBPUSD":1.27,"USDJPY":155,"USDCAD":1.37,"EURGBP":0.85,
+        "AUDUSD":0.65,"USDCHF":0.88,"EURJPY":167,"GBPJPY":197,"EURCHF":0.95,
+        "AUDCAD":0.90,"GBPAUD":1.95,"GBPCAD":1.74,"EURCAD":1.48,"EURAUD":1.66,
+        "GBPCHF":1.12,"AUDJPY":100,"CADJPY":113,"AUDCHF":0.57,"CADCHF":0.64,"CHFJPY":176
+    }
     res = {}
+    # Запрашиваем двумя батчами по 8 пар (чтобы уложиться в лимит)
+    batches = [PAIRS[:8], PAIRS[8:16]]
     try:
-        syms = ",".join(p.replace("/","") for p in PAIRS[:5])
         async with httpx.AsyncClient(timeout=10) as c:
-            r = await c.get("https://api.twelvedata.com/atr", params={"symbol":syms,"interval":"5min","time_period":14,"apikey":TWELVE_DATA_KEY,"outputsize":1})
-            d = r.json()
-            for p in PAIRS[:5]:
-                s = p.replace("/","")
-                if s in d and "values" in d[s]:
-                    atr = float(d[s]["values"][0]["atr"]); res[p] = {"volatility_score": min(100, round(atr/bp.get(s,1)*50000)), "atr": round(atr,5)}
+            for batch in batches:
+                syms = ",".join(p.replace("/","") for p in batch)
+                r = await c.get("https://api.twelvedata.com/atr", params={"symbol":syms,"interval":"5min","time_period":14,"apikey":TWELVE_DATA_KEY,"outputsize":1})
+                d = r.json()
+                for p in batch:
+                    s = p.replace("/","")
+                    if s in d and "values" in d[s]:
+                        atr = float(d[s]["values"][0]["atr"]); res[p] = {"volatility_score": min(100, round(atr/bp.get(s,1)*50000)), "atr": round(atr,5)}
     except Exception as e: print(f"API err: {e}")
     ak = [s["key"] for s in get_sessions() if s["status"]=="active"]
     for p in PAIRS:
