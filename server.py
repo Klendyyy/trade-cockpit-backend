@@ -69,7 +69,7 @@ def get_sessions():
 
 async def get_vol():
     global vol_cache, vol_ts
-    if time.time()-vol_ts < 300 and vol_cache: return vol_cache
+    if time.time()-vol_ts < 900 and vol_cache: return vol_cache
     bp = {
         "EURUSD":1.08,"GBPUSD":1.27,"USDJPY":155,"USDCAD":1.37,"EURGBP":0.85,
         "AUDUSD":0.65,"USDCHF":0.88,"EURJPY":167,"GBPJPY":197,"EURCHF":0.95,
@@ -77,18 +77,16 @@ async def get_vol():
         "GBPCHF":1.12,"AUDJPY":100,"CADJPY":113,"AUDCHF":0.57,"CADCHF":0.64,"CHFJPY":176
     }
     res = {}
-    # Запрашиваем двумя батчами по 8 пар (чтобы уложиться в лимит)
-    batches = [PAIRS[:8], PAIRS[8:16]]
+    top8 = ["EUR/USD","GBP/USD","USD/JPY","EUR/JPY","GBP/JPY","AUD/USD","EUR/CHF","USD/CAD"]
     try:
+        syms = ",".join(p.replace("/","") for p in top8)
         async with httpx.AsyncClient(timeout=10) as c:
-            for batch in batches:
-                syms = ",".join(p.replace("/","") for p in batch)
-                r = await c.get("https://api.twelvedata.com/atr", params={"symbol":syms,"interval":"5min","time_period":14,"apikey":TWELVE_DATA_KEY,"outputsize":1})
-                d = r.json()
-                for p in batch:
-                    s = p.replace("/","")
-                    if s in d and "values" in d[s]:
-                        atr = float(d[s]["values"][0]["atr"]); res[p] = {"volatility_score": min(100, round(atr/bp.get(s,1)*50000)), "atr": round(atr,5)}
+            r = await c.get("https://api.twelvedata.com/atr", params={"symbol":syms,"interval":"5min","time_period":14,"apikey":TWELVE_DATA_KEY,"outputsize":1})
+            d = r.json()
+            for p in top8:
+                s = p.replace("/","")
+                if s in d and "values" in d[s]:
+                    atr = float(d[s]["values"][0]["atr"]); res[p] = {"volatility_score": min(100, round(atr/bp.get(s,1)*50000)), "atr": round(atr,5)}
     except Exception as e: print(f"API err: {e}")
     ak = [s["key"] for s in get_sessions() if s["status"]=="active"]
     for p in PAIRS:
