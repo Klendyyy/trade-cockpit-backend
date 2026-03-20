@@ -788,6 +788,7 @@ body {
   <div class="tab-bar" id="tabBar" style="overflow-x:auto;flex-wrap:nowrap">
     <button class="tab-btn active" data-tab="sessions">Сессии</button>
     <button class="tab-btn" data-tab="payout">Скоринг</button>
+    <button class="tab-btn" data-tab="otc">OTC</button>
     <button class="tab-btn" data-tab="mm">MM</button>
     <button class="tab-btn" data-tab="checklist">Чеклист</button>
     <button class="tab-btn" data-tab="journal">Журнал</button>
@@ -798,10 +799,7 @@ body {
     <!-- Красные зоны — когда НЕ торговать -->
     <div id="redZonesCard"></div>
 
-    <!-- OTC гид (появляется на выходных) -->
-    <div id="otcGuide" style="display:none"></div>
-
-    <!-- Обычные сессии (скрываются на выходных) -->
+    <!-- Сессии (или сообщение о выходных) -->
     <div id="sessionsContainer">
       <div class="card">
         <div class="card-header">
@@ -832,14 +830,11 @@ body {
       </div>
       <div id="scoringList" style="max-height:400px;overflow-y:auto"></div>
     </div>
+  </div>
 
-    <!-- Лучшие дни недели -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Лучшие дни для торговли</span>
-      </div>
-      <div id="bestDaysList"></div>
-    </div>
+  <!-- ═══ OTC VIEW ═══ -->
+  <div class="view" id="view-otc">
+    <div id="otcContent"></div>
   </div>
 
   <!-- ═══ MM VIEW ═══ -->
@@ -850,8 +845,20 @@ body {
       <button class="deposit-edit" onclick="openDepositModal()">Изменить</button>
     </div>
 
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">
+        <span class="card-title">Риск на сделку</span>
+        <span style="font-family:var(--mono);font-size:0.85rem;font-weight:700;color:var(--accent)" id="riskDisplay">2%</span>
+      </div>
+      <input type="range" id="riskSlider" min="0.5" max="10" step="0.5" value="2" 
+        style="width:100%;accent-color:var(--accent)" oninput="updateRisk(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--text-muted);margin-top:4px">
+        <span>0.5%</span><span>Консервативно 1-2%</span><span>10%</span>
+      </div>
+    </div>
+
     <div class="strategy-tabs" id="stratTabs">
-      <button class="strat-btn active" data-strat="fixed">2% от депо</button>
+      <button class="strat-btn active" data-strat="fixed">Фиксированный %</button>
       <button class="strat-btn" data-strat="martin">Мартингейл</button>
       <button class="strat-btn" data-strat="anti">Анти-Мартин</button>
     </div>
@@ -1340,7 +1347,7 @@ saveDeposit = function() {
 
 // ═══ INIT ═══
 // API_URL — адрес бэкенда. Поменяй на свой после деплоя.
-const API_URL = window.TRADE_COCKPIT_API || '';
+const API_URL = window.location.origin;
 // user_id берём из Telegram или генерируем
 const USER_ID = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user)
   ? String(tg.initDataUnsafe.user.id)
@@ -1350,19 +1357,38 @@ loadState();
 updateMM();
 updateJournal();
 document.getElementById('martinCard').style.display = state.strategy === 'martin' ? 'block' : 'none';
+// Sync risk slider with loaded state
+if (document.getElementById('riskSlider')) {
+  document.getElementById('riskSlider').value = state.riskPercent;
+  document.getElementById('riskDisplay').textContent = state.riskPercent + '%';
+}
 
 // ═══ ЗАГРУЗКА РЕАЛЬНЫХ ДАННЫХ СЕССИЙ ═══
 async function loadSessions() {
+  const day = new Date().getUTCDay();
+  const isWeekend = day === 0 || day === 6;
+  const container = document.getElementById('sessionsContainer');
+  const statusEl = document.querySelector('.header-status');
+
+  if (isWeekend) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-muted)">Выходной</span>';
+    container.innerHTML = '<div class="card"><div class="card-header"><span class="card-title">Рынок закрыт</span>' +
+      '<span class="badge badge-wait">выходные</span></div>' +
+      '<div class="verdict verdict-wait" style="margin:0"><svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+      'Основные рынки закрыты до понедельника. Доступны только OTC-пары — смотри вкладку OTC.</div></div>';
+    return;
+  }
+
   try {
     const resp = await fetch(API_URL + '/api/sessions');
     if (!resp.ok) return;
     const data = await resp.json();
 
-    const container = document.getElementById('sessionsContainer');
-    const statusEl = document.querySelector('.header-status');
     const activeSessions = data.sessions.filter(s => s.status === 'active');
     if (activeSessions.length > 0 && statusEl) {
       statusEl.innerHTML = '<span class="pulse-dot"></span>' + activeSessions[0].name;
+    } else if (statusEl) {
+      statusEl.innerHTML = '<span style="color:var(--text-muted)">Между сессиями</span>';
     }
 
     let sessionsHtml = '';
@@ -1679,99 +1705,55 @@ function renderRedZones() {
   container.innerHTML = html;
 }
 
-// ═══ OTC-ГИД НА ВЫХОДНЫЕ ═══
+// ═══ OTC-ГИД — ВСЕГДА ДОСТУПЕН ═══
 function renderOtcGuide() {
+  const container = document.getElementById('otcContent');
   const day = new Date().getUTCDay();
   const isWeekend = day === 0 || day === 6;
-  const otcEl = document.getElementById('otcGuide');
-  const sessEl = document.getElementById('sessionsContainer');
-
-  if (!isWeekend) {
-    otcEl.style.display = 'none';
-    sessEl.style.display = 'block';
-    return;
-  }
-
-  sessEl.style.display = 'none';
-  otcEl.style.display = 'block';
 
   const otcPairs = [
     { pair: 'EUR/USD OTC', rating: 'good', note: 'Самая стабильная OTC-пара. Наиболее предсказуемая.' },
     { pair: 'EUR/GBP OTC', rating: 'good', note: 'Спокойные движения, подходит для коротких сделок.' },
     { pair: 'USD/CHF OTC', rating: 'ok', note: 'Средняя предсказуемость. Торгуй только по тренду.' },
-    { pair: 'GBP/USD OTC', rating: 'ok', note: 'Широкие свечи, но менее стабильна чем EUR/USD.' },
+    { pair: 'GBP/USD OTC', rating: 'ok', note: 'Широкие свечи, менее стабильна чем EUR/USD.' },
     { pair: 'AUD/USD OTC', rating: 'bad', note: 'Часто хаотичные движения. Лучше избегать.' },
     { pair: 'USD/JPY OTC', rating: 'bad', note: 'Непредсказуема на OTC. Высокий риск.' },
-    { pair: 'NZD/USD OTC', rating: 'bad', note: 'Мало объёмов, движения "рисованные".' },
+    { pair: 'NZD/USD OTC', rating: 'bad', note: 'Мало объёмов, движения часто "рисованные".' },
   ];
 
-  let html = '<div class="card"><div class="card-header"><span class="card-title">OTC-гид на выходные</span>' +
-    '<span class="badge badge-wait">только OTC</span></div>';
+  let statusHtml = isWeekend
+    ? '<div class="verdict verdict-wait" style="margin-bottom:12px"><svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Сейчас выходные — OTC единственный доступный рынок</div>'
+    : '<div class="verdict verdict-go" style="margin-bottom:12px"><svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Будни — лучше торговать основной рынок. OTC доступен 24/7.</div>';
+
+  let html = statusHtml + '<div class="card"><div class="card-header"><span class="card-title">Рейтинг OTC-пар</span></div>';
 
   for (const p of otcPairs) {
     const color = p.rating === 'good' ? 'var(--green)' : p.rating === 'ok' ? 'var(--amber)' : 'var(--red)';
     const bg = p.rating === 'good' ? 'var(--green-dim)' : p.rating === 'ok' ? 'var(--amber-dim)' : 'var(--red-dim)';
     const label = p.rating === 'good' ? 'Можно' : p.rating === 'ok' ? 'Осторожно' : 'Избегай';
     html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">' +
-      '<div style="min-width:60px;padding:3px 0;text-align:center;border-radius:var(--radius-xs);background:' + bg + ';color:' + color + ';font-size:0.68rem;font-weight:700">' + label + '</div>' +
+      '<div style="min-width:70px;padding:4px 0;text-align:center;border-radius:var(--radius-xs);background:' + bg + ';color:' + color + ';font-size:0.7rem;font-weight:700">' + label + '</div>' +
       '<div style="flex:1"><div style="font-family:var(--mono);font-size:0.82rem;font-weight:600">' + p.pair + '</div>' +
       '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">' + p.note + '</div></div></div>';
   }
 
-  html += '<div class="verdict verdict-wait" style="margin-top:10px">' +
-    '<svg class="verdict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
-    'OTC-пары менее предсказуемы. Уменьши размер ставки на 50%.</div></div>';
-
-  otcEl.innerHTML = html;
-}
-
-// ═══ ЛУЧШИЕ ДНИ НЕДЕЛИ ═══
-function renderBestDays() {
-  const container = document.getElementById('bestDaysList');
-  // Историческая волатильность по дням недели (реальные данные)
-  const dayNames = ['Пн','Вт','Ср','Чт','Пт'];
-  const data = {
-    'EUR/USD': { best: 2, worst: 0, days: [65,75,85,80,60], note: 'Среда — максимум новостей EUR и USD' },
-    'GBP/USD': { best: 3, worst: 4, days: [70,72,78,82,55], note: 'Четверг — заседания BOE, сильные движения' },
-    'USD/JPY': { best: 2, worst: 0, days: [55,68,80,75,65], note: 'Среда — FED minutes, высокая реакция' },
-    'EUR/JPY': { best: 3, worst: 0, days: [58,70,77,82,62], note: 'Четверг — пересечение EUR и JPY новостей' },
-    'GBP/JPY': { best: 3, worst: 4, days: [65,68,75,85,50], note: 'Четверг — самая волатильная пара недели' },
-    'AUD/USD': { best: 1, worst: 4, days: [62,78,72,70,52], note: 'Вторник — данные из Австралии утром' },
-    'EUR/CHF': { best: 2, worst: 4, days: [60,65,78,72,50], note: 'Среда — спокойный тренд, меньше шума' },
-  };
-
-  const today = new Date().getUTCDay();
-  const todayIdx = today >= 1 && today <= 5 ? today - 1 : -1;
-
-  let html = '';
-  for (const [pair, info] of Object.entries(data)) {
-    html += '<div style="padding:10px 0;border-bottom:1px solid var(--border)">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-      '<span style="font-family:var(--mono);font-size:0.82rem;font-weight:600">' + pair + '</span>' +
-      '<span style="font-size:0.68rem;color:var(--text-muted)">' + info.note + '</span></div>' +
-      '<div style="display:flex;gap:4px">';
-
-    for (let i = 0; i < 5; i++) {
-      const val = info.days[i];
-      const isBest = i === info.best;
-      const isWorst = i === info.worst;
-      const isToday = i === todayIdx;
-      const bg = isBest ? 'var(--green-dim)' : isWorst ? 'var(--red-dim)' : 'var(--bg-elevated)';
-      const color = isBest ? 'var(--green)' : isWorst ? 'var(--red)' : 'var(--text-secondary)';
-      const border = isToday ? '2px solid var(--accent)' : '1px solid transparent';
-      html += '<div style="flex:1;text-align:center;padding:6px 0;border-radius:var(--radius-xs);background:' + bg + ';border:' + border + '">' +
-        '<div style="font-size:0.6rem;color:var(--text-muted)">' + dayNames[i] + '</div>' +
-        '<div style="font-family:var(--mono);font-size:0.75rem;font-weight:700;color:' + color + '">' + val + '</div></div>';
-    }
-    html += '</div></div>';
-  }
-
-  html += '<div style="display:flex;gap:12px;padding:10px 0;font-size:0.68rem;color:var(--text-muted)">' +
-    '<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--green-dim)"></span>лучший</span>' +
-    '<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--red-dim)"></span>худший</span>' +
-    '<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;border:2px solid var(--accent)"></span>сегодня</span></div>';
+  html += '</div><div class="card"><div class="card-header"><span class="card-title">Правила OTC-торговли</span></div>' +
+    '<div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.6;padding:4px 0">' +
+    '1. Уменьши ставку на 50% от обычной<br>' +
+    '2. Торгуй только EUR/USD OTC и EUR/GBP OTC<br>' +
+    '3. Используй таймфрейм от 5 минут<br>' +
+    '4. Не гонись за количеством сделок<br>' +
+    '5. Если 3 потери подряд — остановись</div></div>';
 
   container.innerHTML = html;
+}
+
+// ═══ ОБНОВЛЕНИЕ РИСКА ═══
+function updateRisk(val) {
+  state.riskPercent = parseFloat(val);
+  document.getElementById('riskDisplay').textContent = val + '%';
+  updateMM();
+  saveState();
 }
 
 // Патчим loadSessions чтобы обновлять скоринг и оверлап
@@ -1821,7 +1803,7 @@ function setTheme(mode) {
 loadTasks();
 loadSessions();
 loadAnalytics();
-renderBestDays();
+renderOtcGuide();
 setInterval(loadSessions, 5 * 60 * 1000);
 setInterval(renderRedZones, 60 * 1000);
 
